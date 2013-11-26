@@ -1,7 +1,8 @@
 import nake, os, times
 
 let
-  rst_files = @["LICENSE", "README", "CHANGES", "docindex"]
+  rst_files = @["LICENSE", "README", "docs/CHANGES",
+    "docs/release_steps", "docindex"]
 
 task "babel", "Uses babel to install ouroboros locally":
   if shell("babel install"):
@@ -34,3 +35,4 @@ task "doc", "Generates HTML docs":
       quit("Could not generate html doc for " & rst_file)
     else:
       echo "Generated " & rst_name & ".html"
+  echo "All done"

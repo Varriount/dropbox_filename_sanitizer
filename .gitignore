@@ -4,10 +4,11 @@
 nimcache/
 
 # Full paths.
-/CHANGES.html
 /LICENSE.html
 /README.html
 /docindex.html
+/docs/CHANGES.html
+/docs/release_steps.html
 /dropbox_filename_sanitizer
 /nakefile
 /test.sh

@@ -73,8 +73,8 @@ HTML version. Unix example::
 Changes
 =======
 
-This is version 0.3.1. For a list of changes see the `CHANGES.rst file
-<CHANGES.rst>`_.
+This is version 0.3.1. For a list of changes see the `docs/CHANGES.rst file
+<docs/CHANGES.rst>`_.
 
 
 Git branches
