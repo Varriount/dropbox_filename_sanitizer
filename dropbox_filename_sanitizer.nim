@@ -38,7 +38,7 @@ const
   help_mutate = "Mangle bad characters into common placeholders, " &
     "by default files are only displayed."
 
-  macosx_icon_file = "icon\r"
+  ignored_paths = @["icon\r", ".", ".."]
 
 
 proc process_commandline() =
@@ -121,7 +121,10 @@ proc sanitize(path: string): bool =
 
   let (dir, name, ext) = path.split_file
   var VALID = name & ext
-  if cmp_ignore_case(VALID, macosx_icon_file) == 0: return
+  # Ignore some paths anyway.
+  for ignored_path in ignored_paths:
+    if cmp_ignore_case(VALID, ignored_path) == 0:
+      return
   if mangle_characters(VALID):
     echo "Would change '" & path & "' to '" & dir / VALID & "'"
 
