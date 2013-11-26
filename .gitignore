@@ -1,0 +1,9 @@
+# Global patterns
+*.swp
+.DS_Store
+nimcache/
+
+# Full paths.
+/dropbox_filename_sanitizer
+/nakefile
+/test.sh
