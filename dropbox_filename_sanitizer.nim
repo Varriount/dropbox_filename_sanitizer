@@ -1,4 +1,4 @@
-import argument_parser, os, tables, strutils
+import argument_parser, os, tables, strutils, times
 
 type
   Tglobal = object ## \
@@ -39,6 +39,8 @@ const
     "by default files are only displayed."
 
   ignored_paths = @["icon\r", ".", ".."]
+
+  last_run = ".dropbox_filename_sanitizer_last_run"
 
 
 proc process_commandline() =
@@ -141,9 +143,40 @@ proc sanitize(path: string): bool =
         result = false
 
 
+proc ignore_due_to_recent_run(): bool =
+  ## Returns true if the program was run within the specified period time.
+  ##
+  ## The period time is obtained form G.period. The check for the time is
+  ## stored using the witness ``last_run`` file's modification time. If there
+  ## is a serious problem the proc will quit with an error.
+  ##
+  ## Invoking this proc will overwrite the witness file if the period has
+  ## elapsed or the file does not exist.
+  assert G.period > 0, "Invalid period!"
+  let
+    witness = get_home_dir() / last_run
+    now = to_seconds(get_time())
+
+  var WITNESS_TIME: float
+  try:
+    WITNESS_TIME = to_seconds(getLastModificationTime(witness)) +
+      float(G.period)
+    if WITNESS_TIME > now:
+      result = true
+    else:
+      witness.write_file("")
+  except EOS:
+    witness.write_file("")
+
+
+
 when isMainModule:
   # Gets parameters and extracts them for easy access.
   process_commandline()
+  if G.period > 0:
+    if ignore_due_to_recent_run():
+      quit()
+
   var DID_FAIL: bool
   for parameter in G.params.positional_parameters:
     if not sanitize(parameter.str_val):
