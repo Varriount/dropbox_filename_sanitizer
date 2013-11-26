@@ -2,10 +2,10 @@ Dropbox filename sanitizer
 ==========================
 
 This little command line program displays and/or mangles the specified files to
-conform to `characters allowed to synchronize correctly
+conform to `characters allowed to synchronize correctly on Dropbox
 <https://www.dropbox.com/help/145>`_. I wrote this after having files shared
 with people and much later learning they weren't even getting them! The program
-is implemented in the `Nimrod programming language <http://nimrod-lang.org>`_
+is implemented in the `Nimrod programming language <http://nimrod-lang.org>`_.
 
 
 License
@@ -45,7 +45,7 @@ or ``--period`` switch to specify how many seconds need to have elapsed since
 the last run of the program using this switch to actually scan the directories.
 What this means is that if you put the following line in your login scripts::
 
-    dropbox_filename_sanitizer -p 3600 /home/user/Dropbox
+    dropbox_filename_sanitizer -p 3600 -m /home/user/Dropbox
 
 The command will create a ``~/.dropbox_filename_sanitizer_last_run`` to
 remember when was the last time it was run, and if 3600 seconds have not
