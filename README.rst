@@ -73,7 +73,7 @@ HTML version. Unix example::
 Changes
 =======
 
-This is version 0.1.0. For a list of changes see the `CHANGES.rst file
+This is version 0.2.0. For a list of changes see the `CHANGES.rst file
 <CHANGES.rst>`_.
 
 
