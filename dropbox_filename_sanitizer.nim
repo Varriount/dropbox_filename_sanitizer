@@ -126,11 +126,17 @@ proc sanitize(path: string): bool =
     if cmp_ignore_case(VALID, ignored_path) == 0:
       return
   if mangle_characters(VALID):
-    echo "Would change '" & path & "' to '" & dir / VALID & "'"
+    if G.mutate:
+      let target = dir / VALID
+      echo "'" & path & "' -> '" & target & "'"
+      move_file(path, target)
+    else:
+      echo "Would change '" & path & "' to '" & dir / VALID & "'"
 
   # Initiate recursion? Only for directories.
   if is_dir:
-    for kind, path in path.walk_dir:
+    let final_path = dir / VALID
+    for kind, path in final_path.walk_dir:
       if not sanitize(path):
         result = false
 
