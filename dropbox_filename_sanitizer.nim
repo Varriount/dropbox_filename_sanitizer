@@ -11,8 +11,8 @@ type
 var G: Tglobal
 
 const
-  VERSION_STR* = "0.1.0" ## Program version as a string.
-  VERSION_INT* = (major: 0, minor: 1, maintenance: 0) ## \
+  version_str* = "0.1.0" ## Program version as a string.
+  version_int* = (major: 0, minor: 1, maintenance: 0) ## \
   ## Program version as an integer tuple.
   ##
   ## Major version changes mean significant new features or a break in
@@ -38,6 +38,8 @@ const
   help_mutate = "Mangle bad characters into common placeholders, " &
     "by default files are only displayed."
 
+  macosx_icon_file = "icon\r"
+
 
 proc process_commandline() =
   ## Parses the commandline, modifying the global structure.
@@ -54,7 +56,7 @@ proc process_commandline() =
   G.params = parse(PARAMS)
 
   if G.params.options.has_key(param_version[0]):
-    echo "Version ", VERSION_STR
+    echo "Version ", version_str
     quit()
 
   if G.params.options.has_key(param_mutate[0]):
@@ -81,8 +83,23 @@ proc mangle_characters(TEXT: var string): bool =
   ## shuold pass as TEXT only the base name of the path, or the slashes will be
   ## changed!
   let original = TEXT
+  TEXT = TEXT.strip()
   TEXT = TEXT.replace('/', '_')
   TEXT = TEXT.replace('\\', '_')
+  TEXT = TEXT.replace(':', ',')
+  TEXT = TEXT.replace('<', '[')
+  TEXT = TEXT.replace('>', ']')
+  TEXT = TEXT.replace('|', '_')
+  TEXT = TEXT.replace('"', '\'')
+  TEXT = TEXT.replace('?', '_')
+  TEXT = TEXT.replace('*', '_')
+  # Trim trailing dots.
+  while TEXT.len > 0:
+    let last = high(TEXT)
+    if TEXT[last] == '.':
+      TEXT.setLen(last)
+    else:
+      break
   result = not (original == TEXT)
 
 
@@ -99,11 +116,20 @@ proc sanitize(path: string): bool =
     echo "Invalid '" & path & "' not a file or directory."
     return
 
+  # From here on, presume we succeeded and report failures.
+  result = true
+
   let (dir, name, ext) = path.split_file
   var VALID = name & ext
+  if cmp_ignore_case(VALID, macosx_icon_file) == 0: return
   if mangle_characters(VALID):
     echo "Would change '" & path & "' to '" & dir / VALID & "'"
-  result = true
+
+  # Initiate recursion? Only for directories.
+  if is_dir:
+    for kind, path in path.walk_dir:
+      if not sanitize(path):
+        result = false
 
 
 when isMainModule:
