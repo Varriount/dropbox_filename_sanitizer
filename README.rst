@@ -17,11 +17,24 @@ License
 Installation
 ============
 
+Stable version
+--------------
+
+Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
+install the binary::
+
+    $ babel update
+    $ babel install dropbox_filename_sanitizer
+
+Development version
+-------------------
+
 Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
 install locally the github checkout::
 
     $ git clone https://github.com/gradha/dropbox_filename_sanitizer.git
     $ cd dropbox_filename_sanitizer
+    $ git checkout develop
     $ babel install
 
 
@@ -73,8 +86,19 @@ HTML version. Unix example::
 Changes
 =======
 
-This is version 0.2.0. For a list of changes see the `CHANGES.rst file
-<CHANGES.rst>`_.
+This is version 0.2.1. For a list of changes see the `docs/CHANGES.rst file
+<docs/CHANGES.rst>`_.
+
+
+Git branches
+============
+
+This project uses the `git-flow branching model
+<https://github.com/nvie/gitflow>`_. Which means the ``master`` default branch
+doesn't *see* much movement, development happens in another branch like
+``develop``. Most people will be fine using the ``master`` branch, but if you
+want to contribute something please check out first the ``develop`` branch and
+do pull requests against that.
 
 
 Feedback
