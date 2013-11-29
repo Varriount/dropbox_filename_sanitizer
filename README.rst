@@ -17,11 +17,24 @@ License
 Installation
 ============
 
+Stable version
+--------------
+
+Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
+install the binary::
+
+    $ babel update
+    $ babel install dropbox_filename_sanitizer
+
+Development version
+-------------------
+
 Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
 install locally the github checkout::
 
     $ git clone https://github.com/gradha/dropbox_filename_sanitizer.git
     $ cd dropbox_filename_sanitizer
+    $ git checkout develop
     $ babel install
 
 
