@@ -1,7 +1,7 @@
 Changes
 =======
 
-v0.3.1, ????-??-??
+v0.2.1, 2013-11-29
 ------------------
 
 * `Update babel installation instructions
