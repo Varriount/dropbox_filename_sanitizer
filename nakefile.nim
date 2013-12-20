@@ -5,7 +5,7 @@ let
     "docs/release_steps", "docindex"]
 
 task "babel", "Uses babel to install ouroboros locally":
-  if shell("babel install"):
+  if shell("babel install -y"):
     echo "Installed"
 
 proc needs_refresh(target: string, src: varargs[string]): bool =
