@@ -20,8 +20,9 @@ Installation
 Stable version
 --------------
 
-Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
-install the binary::
+Install the `Nimrod compiler <http://nimrod-lang.org>`_. Then use `Nimrod's
+babel package manager <https://github.com/nimrod-code/babel>`_ to install the
+binary::
 
     $ babel update
     $ babel install dropbox_filename_sanitizer
@@ -29,8 +30,9 @@ install the binary::
 Development version
 -------------------
 
-Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
-install locally the github checkout::
+Install the `Nimrod compiler <http://nimrod-lang.org>`_. Then use `Nimrod's
+babel package manager <https://github.com/nimrod-code/babel>`_ to install
+locally the github checkout::
 
     $ git clone https://github.com/gradha/dropbox_filename_sanitizer.git
     $ cd dropbox_filename_sanitizer
