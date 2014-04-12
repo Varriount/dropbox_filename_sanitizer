@@ -38,7 +38,7 @@ const
   help_mutate = "Mangle bad characters into common placeholders, " &
     "by default files are only displayed."
 
-  ignored_paths = @["icon\r", ".", ".."]
+  ignored_paths = @["icon\r", ".", "..", ".dropbox.cache"]
 
   last_run = ".dropbox_filename_sanitizer_last_run"
 

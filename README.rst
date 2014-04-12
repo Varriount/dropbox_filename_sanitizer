@@ -69,6 +69,13 @@ command is fast enough that you don't have to care, but maybe you want to put
 this into a semi-automatic script which *may* run at a high frequency and don't
 want to spam your hard drive with I/O requests.
 
+Some paths are always ignored during directory traversal. The case insensitive
+ignored paths are:
+
+* ``..``
+* ``.``
+* ``.dropbox.cache``
+* ``icon\r``
 
 Documentation
 =============
