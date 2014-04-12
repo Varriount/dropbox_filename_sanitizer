@@ -4,7 +4,8 @@ Changes
 v0.3.2, ????-??-??
 ------------------
 
-* Nothing yet.
+* `Reversed git-flow branches
+  <https://github.com/gradha/dropbox_filename_sanitizer/issues/5>`_.
 
 v0.2.1, 2013-11-29
 ------------------
