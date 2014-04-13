@@ -14,23 +14,29 @@ License
 `MIT license <LICENSE.rst>`_.
 
 
-Installation
-============
+Installing from source code
+===========================
 
 Stable version
 --------------
 
-Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
-install the binary::
+Install the `Nimrod compiler <http://nimrod-lang.org>`_. Then use `Nimrod's
+babel package manager <https://github.com/nimrod-code/babel>`_ to install the
+binary::
 
     $ babel update
     $ babel install dropbox_filename_sanitizer
 
+This will install the ``dropbox_filename_sanitizer`` command into Babel's
+binary directory.
+
+
 Development version
 -------------------
 
-Use `Nimrod's babel package manager <https://github.com/nimrod-code/babel>`_ to
-install locally the github checkout::
+Install the `Nimrod compiler <http://nimrod-lang.org>`_. Then use `Nimrod's
+babel package manager <https://github.com/nimrod-code/babel>`_ to install
+locally the github checkout::
 
     $ git clone https://github.com/gradha/dropbox_filename_sanitizer.git
     $ cd dropbox_filename_sanitizer
@@ -38,12 +44,21 @@ install locally the github checkout::
     $ babel install
 
 
+Installing prebuilt binaries
+============================
+
+If you trust binaries and random strangers on the internet, you can go to
+`https://github.com/gradha/dropbox_filename_sanitizer/releases
+<https://github.com/gradha/dropbox_filename_sanitizer/releases>`_ and download
+any of the ``.zip`` files attached to a specific release. Put the binary file
+somewhere in your ``$PATH`` and invoke at will
+
+
 Usage
 =====
 
-Once you have installed the package with Babel, and presuming you have
-configured Babel's binary directory to be in your ``$PATH``, you can run the
-command freely and pass the directory where your Dropbox shared folder exist::
+Once you have installed the program you can run the command and pass the
+directory where your Dropbox shared folder exist::
 
     $ dropbox_filename_sanitizer /home/user/Dropbox
 
@@ -67,6 +82,14 @@ command is fast enough that you don't have to care, but maybe you want to put
 this into a semi-automatic script which *may* run at a high frequency and don't
 want to spam your hard drive with I/O requests.
 
+Some paths are always ignored during directory traversal. The list of case
+insensitive paths to ignore is:
+
+.. include:: docs/ignored_paths.rst
+
+If you are reading this on GitHub the list will be empty, see file
+`docs/ignored_paths.rst <docs/ignored_paths.rst>`_.
+
 
 Documentation
 =============
@@ -86,19 +109,17 @@ HTML version. Unix example::
 Changes
 =======
 
-This is version 0.2.1. For a list of changes see the `docs/CHANGES.rst file
-<docs/CHANGES.rst>`_.
+This is stable version 0.4.0. For a list of changes see the
+`docs/CHANGES.rst file <docs/CHANGES.rst>`_.
 
 
 Git branches
 ============
 
 This project uses the `git-flow branching model
-<https://github.com/nvie/gitflow>`_. Which means the ``master`` default branch
-doesn't *see* much movement, development happens in another branch like
-``develop``. Most people will be fine using the ``master`` branch, but if you
-want to contribute something please check out first the ``develop`` branch and
-do pull requests against that.
+<https://github.com/nvie/gitflow>`_ with reversed defaults. Stable releases are
+tracked in the ``stable`` branch. Development happens in the default ``master``
+branch.
 
 
 Feedback

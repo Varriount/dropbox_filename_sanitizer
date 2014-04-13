@@ -6,8 +6,11 @@ nimcache/
 # Full paths.
 /LICENSE.html
 /README.html
+/dist/
 /docindex.html
 /docs/CHANGES.html
+/docs/dist/readme.html
+/docs/ignored_paths.html
 /docs/release_steps.html
 /dropbox_filename_sanitizer
 /nakefile

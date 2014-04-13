@@ -1,4 +1,25 @@
-import argument_parser, os, tables, strutils, times
+import argument_parser, os, tables, strutils, times, macros
+
+macro read_rst_list(rst_filename: static[string]): expr =
+  ## Reads `rst_filename` and returns a sequence of strings found in it.
+  ##
+  ## This is used in const blocks, the returned value is like you writing
+  ## @[...] with the ellipsis replaced with the contents of the file.
+  let input = slurp(rst_filename)
+  result = newNimNode(nnkStmtList)
+  let brackets = newNimNode(nnkBracket)
+
+  for line in input.split_lines:
+    let
+      first = line.find("``")
+      last = line.rfind("``")
+    if last <= first: continue
+    var text = line[first + 2 .. last - 1]
+    text = text.replace("\\r", "\r")
+    #echo "Found '", text, "'"
+    brackets.add(newStrLitNode(text))
+
+  result.add(prefix(brackets, "@"))
 
 type
   Tglobal = object ## \
@@ -11,8 +32,8 @@ type
 var G: Tglobal
 
 const
-  version_str* = "0.2.1" ## Program version as a string.
-  version_int* = (major: 0, minor: 2, maintenance: 1) ## \
+  version_str* = "0.4.0" ## Program version as a string.
+  version_int* = (major: 0, minor: 4, maintenance: 0) ## \
   ## Program version as an integer tuple.
   ##
   ## Major version changes mean significant new features or a break in
@@ -38,10 +59,12 @@ const
   help_mutate = "Mangle bad characters into common placeholders, " &
     "by default files are only displayed."
 
-  ignored_paths = @["icon\r", ".", ".."]
+  ignored_paths = read_rst_list("docs"/"ignored_paths.rst")
 
   last_run = ".dropbox_filename_sanitizer_last_run"
 
+when ignored_paths.len < 1:
+  {.fatal: "Could not read any paths to ignore, that's bad.".}
 
 proc process_commandline() =
   ## Parses the commandline, modifying the global structure.
