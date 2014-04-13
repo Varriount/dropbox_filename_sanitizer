@@ -17,7 +17,7 @@ template glob_rst(basedir: string = nil): expr =
 
 let
   exe_name = name.change_file_ext(exe_ext)
-  rst_files = concat(glob_rst(), glob_rst("docs"))
+  rst_files = concat(glob_rst(), glob_rst("docs"), glob_rst("docs"/"dist"))
 
 proc compile() =
   let
@@ -131,9 +131,13 @@ template os_task(define_name): stmt {.immediate.} =
       doc_html_dir = dest_dir/"doc_html"
       doc_txt_dir = dest_dir/"doc_txt"
 
+    # Normal documentation.
     for rst_file, html_file in all_rst_files():
       rst_file.copy_dist_file(doc_txt_dir)
       html_file.copy_dist_file(doc_html_dir)
+
+    move_file(doc_html_dir/"docs"/"dist"/"readme.html", dest_dir/"readme.html")
+    move_file(doc_txt_dir/"docs"/"dist"/"readme.txt", dest_dir/"readme.txt")
 
     copy_dist_file(exe_name, dest_dir)
     make_zip_from_dir(dest_dir)

@@ -12,6 +12,7 @@ LICENSE.rst
 README.rst
 docindex.rst
 docs/CHANGES.rst
+docs/dist/readme.rst
 docs/ignored_paths.rst
 docs/release_steps.rst
 dropbox_filename_sanitizer.nim

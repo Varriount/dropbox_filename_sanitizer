@@ -11,7 +11,7 @@ Available documentation files for the `Dropbox filename sanitizer
   * `docs/CHANGES.rst <docs/CHANGES.rst>`_.
   * `docs/release_steps.rst <docs/release_steps.rst>`_.
 
-* HTML (available after running ``nake doc``):
+* HTML (available after running ``nake doc`` or in pre built binaries):
 
   * `LICENSE.html <LICENSE.html>`_.
   * `README.html <README.html>`_.
