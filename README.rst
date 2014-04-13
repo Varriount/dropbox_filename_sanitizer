@@ -109,7 +109,7 @@ HTML version. Unix example::
 Changes
 =======
 
-This is development version 0.3.2. For a list of changes see the
+This is stable version 0.4.0. For a list of changes see the
 `docs/CHANGES.rst file <docs/CHANGES.rst>`_.
 
 
