@@ -1,4 +1,24 @@
-import argument_parser, os, tables, strutils, times
+import argument_parser, os, tables, strutils, times, macros
+
+macro read_rst_list(rst_filename: string): expr =
+  ## Reads `rst_filename` and returns a sequence of strings found in it.
+  ##
+  ## This is used in const blocks, the returned value is like you writing
+  ## @[...] with the ellipsis replaced with the contents of the file.
+  let input = slurp(rst_filename.strVal)
+  result = newNimNode(nnkStmtList)
+  let brackets = newNimNode(nnkBracket)
+
+  for line in input.split_lines:
+    let
+      first = line.find("``")
+      last = line.rfind("``")
+    if last <= first: continue
+    let text = line[first + 2 .. last - 1]
+    #echo "Found '", text, "'"
+    brackets.add(newStrLitNode(text))
+
+  result.add(prefix(brackets, "@"))
 
 type
   Tglobal = object ## \
@@ -38,10 +58,12 @@ const
   help_mutate = "Mangle bad characters into common placeholders, " &
     "by default files are only displayed."
 
-  ignored_paths = @["icon\r", ".", ".."]
+  ignored_paths = read_rst_list("docs/ignored_paths.rst")
 
   last_run = ".dropbox_filename_sanitizer_last_run"
 
+when ignored_paths.len < 1:
+  {.fatal: "Could not read any paths to ignore, that's bad.".}
 
 proc process_commandline() =
   ## Parses the commandline, modifying the global structure.

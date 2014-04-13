@@ -69,6 +69,14 @@ command is fast enough that you don't have to care, but maybe you want to put
 this into a semi-automatic script which *may* run at a high frequency and don't
 want to spam your hard drive with I/O requests.
 
+Some paths are always ignored during directory traversal. The list of case
+insensitive paths to ignore is:
+
+.. include:: docs/ignored_paths.rst
+
+If you are reading this on GitHub the list will be empty, see file
+`docs/ignored_paths.rst <docs/ignored_paths.rst>`_.
+
 
 Documentation
 =============
