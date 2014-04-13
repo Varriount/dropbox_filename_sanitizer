@@ -37,7 +37,7 @@ What to do for a new public release of dropbox_filename_sanitizer?
   * Also add to the release text the Nimrod compiler version noted in the
     release issue.
 
-* Increase version numbers, ``master`` branch gets +0.1.1:
+* Increase version numbers, ``master`` branch gets +0.0.1:
 
   * Modify `README.rst <../README.rst>`_.
   * Modify `dropbox_filename_sanitizer.nim

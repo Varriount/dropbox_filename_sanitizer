@@ -12,6 +12,8 @@ v0.3.2, ????-??-??
   <https://github.com/gradha/dropbox_filename_sanitizer/issues/7>`_.
 * `Added binary distribution tasks
   <https://github.com/gradha/dropbox_filename_sanitizer/issues/3>`_.
+* `Changed versioning scheme, bumps to 0.4.0
+  <https://github.com/gradha/dropbox_filename_sanitizer/issues/6>`_.
 
 v0.2.1, 2013-11-29
 ------------------
