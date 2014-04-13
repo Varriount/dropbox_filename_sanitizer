@@ -14,8 +14,8 @@ License
 `MIT license <LICENSE.rst>`_.
 
 
-Installation
-============
+Installing from source code
+===========================
 
 Stable version
 --------------
@@ -26,6 +26,10 @@ binary::
 
     $ babel update
     $ babel install dropbox_filename_sanitizer
+
+This will install the ``dropbox_filename_sanitizer`` command into Babel's
+binary directory.
+
 
 Development version
 -------------------
@@ -40,12 +44,21 @@ locally the github checkout::
     $ babel install
 
 
+Installing prebuilt binaries
+============================
+
+If you trust binaries and random strangers on the internet, you can go to
+`https://github.com/gradha/dropbox_filename_sanitizer/releases
+<https://github.com/gradha/dropbox_filename_sanitizer/releases>`_ and download
+any of the ``.zip`` files attached to a specific release. Put the binary file
+somewhere in your ``$PATH`` and invoke at will
+
+
 Usage
 =====
 
-Once you have installed the package with Babel, and presuming you have
-configured Babel's binary directory to be in your ``$PATH``, you can run the
-command freely and pass the directory where your Dropbox shared folder exist::
+Once you have installed the program you can run the command and pass the
+directory where your Dropbox shared folder exist::
 
     $ dropbox_filename_sanitizer /home/user/Dropbox
 
