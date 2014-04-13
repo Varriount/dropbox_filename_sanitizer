@@ -114,7 +114,7 @@ proc copy_dist_file(src, dest_dir: string ) =
 
   # Make sure target directory exists.
   dest.split_file.dir.create_dir
-  echo src, " -> ", dest
+  #echo src, " -> ", dest
   src.copy_file_with_permissions(dest)
 
 
