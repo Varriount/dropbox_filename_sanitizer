@@ -8,19 +8,6 @@ task "babel", "Uses babel to install ouroboros locally":
   direshell("babel install -y")
   echo "Installed"
 
-proc needs_refresh(target: string, src: varargs[string]): bool =
-  assert len(src) > 0, "Pass some parameters to check for"
-  var targetTime: float
-  try:
-    targetTime = toSeconds(getLastModificationTime(target))
-  except EOS:
-    return true
-
-  for s in src:
-    let srcTime = toSeconds(getLastModificationTime(s))
-    if srcTime > targetTime:
-      return true
-
 iterator all_rst_files(): tuple[src, dest: string] =
   for rst_name in rst_files:
     var r: tuple[src, dest: string]

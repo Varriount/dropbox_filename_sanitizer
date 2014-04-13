@@ -8,4 +8,4 @@ bin           = "dropbox_filename_sanitizer"
 InstallFiles = "dropbox_filename_sanitizer.nim,LICENSE.rst,nakefile.nim,README.rst,docs/CHANGES.rst,docindex.rst"
 
 [Deps]
-Requires: "nake >= 1.0,argument_parser >= 0.1.2"
+Requires: "nake >= 1.2,argument_parser >= 0.1.2"
