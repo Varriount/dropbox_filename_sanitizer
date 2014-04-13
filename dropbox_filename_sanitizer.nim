@@ -14,7 +14,8 @@ macro read_rst_list(rst_filename: string): expr =
       first = line.find("``")
       last = line.rfind("``")
     if last <= first: continue
-    let text = line[first + 2 .. last - 1]
+    var text = line[first + 2 .. last - 1]
+    text = text.replace("\\r", "\r")
     #echo "Found '", text, "'"
     brackets.add(newStrLitNode(text))
 
