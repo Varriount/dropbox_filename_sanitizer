@@ -5,7 +5,21 @@ author        = "Grzegorz Adam Hankiewicz"
 description   = """Mangles filename for dropbox compatibility."""
 license       = "MIT"
 bin           = "dropbox_filename_sanitizer"
-InstallFiles = "dropbox_filename_sanitizer.nim,LICENSE.rst,nakefile.nim,README.rst,docs/CHANGES.rst,docindex.rst"
+
+InstallFiles = """
+
+LICENSE.rst
+README.rst
+docindex.rst
+docs/CHANGES.rst
+docs/dist/readme.rst
+docs/ignored_paths.rst
+docs/release_steps.rst
+dropbox_filename_sanitizer.nim
+nakefile.nim
+nakefile.nimrod.cfg
+
+"""
 
 [Deps]
 Requires: "nake >= 1.2,argument_parser >= 0.1.2"
