@@ -32,8 +32,8 @@ type
 var G: Tglobal
 
 const
-  version_str* = "0.3.2" ## Program version as a string.
-  version_int* = (major: 0, minor: 3, maintenance: 2) ## \
+  version_str* = "0.4.0" ## Program version as a string.
+  version_int* = (major: 0, minor: 4, maintenance: 0) ## \
   ## Program version as an integer tuple.
   ##
   ## Major version changes mean significant new features or a break in
