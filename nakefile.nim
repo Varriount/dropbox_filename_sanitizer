@@ -142,13 +142,18 @@ when defined(macosx): os_task("macosx")
 when defined(linux): os_task("linux")
 
 task "md5", "Computes md5 of files found in dist subdirectory.":
+  # Attempts to obtain the git current commit.
+  var git_commit = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  let (output, code) = execCmdEx("cd ../root && git log -n 1 --format=%H")
+  if code == 0 and output.strip.len == 40:
+    git_commit = output.strip
   echo """Add the following notes to the release info:
 
-Compiled with Nimrod version https://github.com/Araq/Nimrod/commit/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.
+Compiled with Nimrod version https://github.com/Araq/Nimrod/commit/$2.
 
 [See the changes log](https://github.com/gradha/dropbox_filename_sanitizer/blob/v$1/docs/CHANGES.rst).
 
-Binary MD5 checksums:""" % (dropbox_filename_sanitizer.version_str)
+Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
   for filename in walk_files(dist_dir/"*.zip"):
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
