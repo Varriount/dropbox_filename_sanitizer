@@ -72,10 +72,10 @@ want to spam your hard drive with I/O requests.
 Some paths are always ignored during directory traversal. The list of case
 insensitive paths to ignore is:
 
-.. include:: ignored_paths.rst
+.. include:: docs/ignored_paths.rst
 
 If you are reading this on GitHub the list will be empty, see file
-`ignored_paths.rst <ignored_paths.rst>`_.
+`docs/ignored_paths.rst <docs/ignored_paths.rst>`_.
 
 
 Documentation
