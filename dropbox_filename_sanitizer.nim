@@ -1,11 +1,11 @@
 import argument_parser, os, tables, strutils, times, macros
 
-macro read_rst_list(rst_filename: string): expr =
+macro read_rst_list(rst_filename: static[string]): expr =
   ## Reads `rst_filename` and returns a sequence of strings found in it.
   ##
   ## This is used in const blocks, the returned value is like you writing
   ## @[...] with the ellipsis replaced with the contents of the file.
-  let input = slurp(rst_filename.strVal)
+  let input = slurp(rst_filename)
   result = newNimNode(nnkStmtList)
   let brackets = newNimNode(nnkBracket)
 
@@ -59,7 +59,7 @@ const
   help_mutate = "Mangle bad characters into common placeholders, " &
     "by default files are only displayed."
 
-  ignored_paths = read_rst_list("docs/ignored_paths.rst")
+  ignored_paths = read_rst_list("docs"/"ignored_paths.rst")
 
   last_run = ".dropbox_filename_sanitizer_last_run"
 
