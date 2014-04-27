@@ -172,7 +172,8 @@ task "test_install", "Pass a configuration file for testing installations":
     host = json["host"].str
     user = json["user"].str
     ssh_target = user & "@" & host
-    seconds = int(epoch_time())
+    #seconds = int(epoch_time())
+    seconds = int(1398621623)
     bash_file = "test_" & $seconds & ".sh"
 
   # Prepare the buffer. Do it in chunks to not have to escape dollars.
@@ -186,12 +187,56 @@ BASE_DIR=~/test_dropbox_filename_sanitizer
 TEST_DIR="${BASE_DIR}/"""
   buf.add($seconds)
   buf.add(""""
-rm -Rf "${BASE_DIR}"
-if test -d "${BASE_DIR}"; then
-  echo "Could not purge $BASE_DIR"
-  exit 1
-fi
-mkdir -p "${TEST_DIR}"
+NIM_DIR="${TEST_DIR}/compiler"
+NIM_BIN="${NIM_DIR}/bin/nimrod"
+BABEL_CFG=~/.babel
+BABEL_BIN="${BABEL_CFG}/bin"
+BABEL_SRC="${TEST_DIR}/babel"
+
+#rm -Rf "${BASE_DIR}"
+rm -Rf "${BABEL_CFG}" "${BABEL_SRC}"
+#if test -d "${BASE_DIR}"; then
+#  echo "Could not purge $BASE_DIR"
+#  exit 1
+#fi
+#mkdir -p "${TEST_DIR}"
+#
+#echo "Downloading Nimrod compiler…"
+#git clone --depth 1 git://github.com/Araq/Nimrod.git "${NIM_DIR}"
+#git clone --depth 1 git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
+#
+#echo "Compiling csources…"
+#cd "${NIM_DIR}/csources"
+#sh build.sh
+#
+#echo "Compiling koch…"
+#cd "${NIM_DIR}"
+#bin/nimrod c koch
+#
+#echo "Compiling Nimrod…"
+#./koch boot -d:release
+
+echo "Testing Nimrod compiler invokation through adhoc path…"
+export PATH="${NIM_DIR}/bin:${PATH}"
+which nimrod
+nimrod -v|grep "Nimrod Compiler Version"
+
+echo "Downloading Babel package manager…"
+git clone --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
+cd "${BABEL_SRC}"
+
+echo "Compiling Babel…"
+nimrod c -r src/babel install
+
+echo "Installing Babel itself through environment path…"
+export PATH="${BABEL_BIN}:${PATH}"
+babel update
+babel install -y babel
+
+echo "Testing dropbox_filename_sanitizer babel installation…"
+babel install dropbox_filename_sanitizer
+echo "Babel finished installing, testing…"
+dropbox_filename_sanitizer -v | grep Version
 
 echo "Test script finished successfully"
 """)
