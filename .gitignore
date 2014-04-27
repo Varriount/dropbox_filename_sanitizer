@@ -4,6 +4,7 @@
 nimcache/
 
 # Full paths.
+/*.testinfo
 /LICENSE.html
 /README.html
 /dist/

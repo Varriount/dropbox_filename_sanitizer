@@ -1,5 +1,5 @@
 import nake, os, times, osproc, zipfiles, md5, dropbox_filename_sanitizer,
-  sequtils
+  sequtils, json, posix
 
 const
   dist_dir = "dist"
@@ -161,3 +161,52 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
   for filename in walk_files(dist_dir/"*.zip"):
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
+
+task "test_install", "Pass a configuration file for testing installations":
+  if paramCount() < 2:
+    quit "Pass a json with test info like `nake jsonfile test_install'."
+  # Read data from the json test file.
+  let json = param_str(1).parse_file
+  assert json.kind == JObject
+  let
+    host = json["host"].str
+    user = json["user"].str
+    ssh_target = user & "@" & host
+    seconds = int(epoch_time())
+    bash_file = "test_" & $seconds & ".sh"
+
+  # Prepare the buffer. Do it in chunks to not have to escape dollars.
+  var buf = """#!/bin/sh
+
+# Set errors to bail out.
+set -e
+# Display commands
+#set -v
+BASE_DIR=~/test_dropbox_filename_sanitizer
+TEST_DIR="${BASE_DIR}/"""
+  buf.add($seconds)
+  buf.add(""""
+rm -Rf "${BASE_DIR}"
+if test -d "${BASE_DIR}"; then
+  echo "Could not purge $BASE_DIR"
+  exit 1
+fi
+mkdir -p "${TEST_DIR}"
+
+echo "Test script finished successfully"
+""")
+
+  # Generate the script.
+  finally: bash_file.remove_file
+  bash_file.write_file(buf)
+  doAssert 0 == bash_file.chmod(
+    S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
+
+  # Send the script to the remote machine and run it after purging previous.
+  echo "Removing previous scripts…"
+  direShell("ssh", ssh_target, "rm 'test_*.sh'")
+  echo "Copying current script ", bash_file, "…"
+  direShell("scp", bash_file, ssh_target & ":.")
+  echo "Running script remotely…"
+  direShell("ssh", ssh_target, "./" & bash_file)
+  echo "Nakefile finished successfully"
