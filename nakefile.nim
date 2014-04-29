@@ -162,22 +162,18 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
 
-task "test_install", "Pass a configuration file for testing installations":
-  if paramCount() < 2:
-    quit "Pass a json with test info like `nake jsonfile test_install'."
-  # Read data from the json test file.
-  let json = param_str(1).parse_file
-  assert json.kind == JObject
-  let
-    host = json["host"].str
-    user = json["user"].str
-    ssh_target = user & "@" & host
-    #seconds = int(epoch_time())
-    seconds = int(1398621623)
-    bash_file = "test_" & $seconds & ".sh"
-
-  # Prepare the buffer. Do it in chunks to not have to escape dollars.
-  var buf = """#!/bin/sh
+proc gen_script(user, host, dir_name,
+    nimrod_git_branch, nimrod_version_string: string): string =
+  ## Returns a string with the contents of the shell script to run.
+  ##
+  ## Pass the name of the host where the script will run and the unix username.
+  ## The `nimrod_git_branch` parameter can be a tag or a git commit hash. The
+  ## `nimrod_version_string` will be passed to grep as is (beware escaping).
+  ##
+  ## The `dir_name` parameter should be a random unique string which will be
+  ## used as directory base to avoid colliding with other tests. You can pass
+  ## the epoch seconds here as a string.
+  result = """#!/bin/sh
 
 # Set errors to bail out.
 set -e
@@ -185,41 +181,46 @@ set -e
 #set -v
 BASE_DIR=~/test_dropbox_filename_sanitizer
 TEST_DIR="${BASE_DIR}/"""
-  buf.add($seconds)
-  buf.add(""""
+  result.add(dir_name)
+  result.add(""""
 NIM_DIR="${TEST_DIR}/compiler"
 NIM_BIN="${NIM_DIR}/bin/nimrod"
 BABEL_CFG=~/.babel
 BABEL_BIN="${BABEL_CFG}/bin"
 BABEL_SRC="${TEST_DIR}/babel"
 
-#rm -Rf "${BASE_DIR}"
-rm -Rf "${BABEL_CFG}" "${BABEL_SRC}"
-#if test -d "${BASE_DIR}"; then
-#  echo "Could not purge $BASE_DIR"
-#  exit 1
-#fi
-#mkdir -p "${TEST_DIR}"
-#
-#echo "Downloading Nimrod compiler…"
-#git clone --depth 1 git://github.com/Araq/Nimrod.git "${NIM_DIR}"
-#git clone --depth 1 git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
-#
-#echo "Compiling csources…"
-#cd "${NIM_DIR}/csources"
-#sh build.sh
-#
-#echo "Compiling koch…"
-#cd "${NIM_DIR}"
-#bin/nimrod c koch
-#
-#echo "Compiling Nimrod…"
-#./koch boot -d:release
+rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
+if test -d "${BASE_DIR}"; then
+  echo "Could not purge $BASE_DIR"
+  exit 1
+fi
+mkdir -p "${TEST_DIR}"
+
+echo "Downloading Nimrod compiler '""")
+  result.add(nimrod_git_branch)
+  result.add("""'…"
+git clone --depth 1 -b """)
+  result.add(nimrod_git_branch)
+  result.add(""" git://github.com/Araq/Nimrod.git "${NIM_DIR}"
+git clone --depth 1 git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
+
+echo "Compiling csources…"
+cd "${NIM_DIR}/csources"
+sh build.sh
+
+echo "Compiling koch…"
+cd "${NIM_DIR}"
+bin/nimrod c koch
+
+echo "Compiling Nimrod…"
+./koch boot -d:release
 
 echo "Testing Nimrod compiler invokation through adhoc path…"
 export PATH="${NIM_DIR}/bin:${PATH}"
 which nimrod
-nimrod -v|grep "Nimrod Compiler Version"
+nimrod -v|grep """")
+  result.add(nimrod_version_string)
+  result.add(""""
 
 echo "Downloading Babel package manager…"
 git clone --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
@@ -233,25 +234,53 @@ export PATH="${BABEL_BIN}:${PATH}"
 babel update
 babel install -y babel
 
+# Install dependencies first to avoid troubles, see https://github.com/nimrod-code/babel/issues/37
+babel install argument_parser
 echo "Testing dropbox_filename_sanitizer babel installation…"
 babel install dropbox_filename_sanitizer
 echo "Babel finished installing, testing…"
 dropbox_filename_sanitizer -v | grep Version
 
-echo "Test script finished successfully"
+echo "Test script finished successfully, removing stuff…"
+rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
 """)
 
-  # Generate the script.
+
+proc run_json_test(json_filename: string) =
+  ## Runs a json test file.
+  let json = json_filename.parse_file
+  assert json.kind == JObject
+  let
+    host = json["host"].str
+    user = json["user"].str
+    ssh_target = user & "@" & host
+    seconds = int(epoch_time())
+    bash_file = "test_" & $seconds & ".sh"
+    compiler_branch = json["nimrod_branch"].str
+    compiler_version_str = json["nimrod_version_str"].str
+
   finally: bash_file.remove_file
-  bash_file.write_file(buf)
+
+  # Generate the script.
+  bash_file.write_file(gen_script(user, host,
+    $seconds, compiler_branch, compiler_version_str))
   doAssert 0 == bash_file.chmod(
     S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
 
   # Send the script to the remote machine and run it after purging previous.
   echo "Removing previous scripts…"
-  direShell("ssh", ssh_target, "rm 'test_*.sh'")
+  direShell("ssh", ssh_target, "rm -f 'test_*.sh'")
   echo "Copying current script ", bash_file, "…"
   direShell("scp", bash_file, ssh_target & ":.")
   echo "Running script remotely…"
   direShell("ssh", ssh_target, "./" & bash_file)
+
+
+task "test_install", "Pass a configuration file for testing installations":
+  if paramCount() < 2:
+    quit "Pass a json with test info like `nake jsonfile test_install'."
+
+  # Read data from the json test file.
+  run_json_test(param_str(1))
+
   echo "Nakefile finished successfully"
