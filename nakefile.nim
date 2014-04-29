@@ -179,7 +179,7 @@ proc gen_script(user, host, dir_name,
 set -e
 # Display commands
 #set -v
-BASE_DIR=~/test_dropbox_filename_sanitizer
+BASE_DIR=~/shelltest_dropbox_filename_sanitizer
 TEST_DIR="${BASE_DIR}/"""
   result.add(dir_name)
   result.add(""""
@@ -255,7 +255,7 @@ proc run_json_test(json_filename: string) =
     user = json["user"].str
     ssh_target = user & "@" & host
     seconds = int(epoch_time())
-    bash_file = "test_" & $seconds & ".sh"
+    bash_file = "shelltest_" & $seconds & ".sh"
     compiler_branch = json["nimrod_branch"].str
     compiler_version_str = json["nimrod_version_str"].str
 
@@ -269,16 +269,16 @@ proc run_json_test(json_filename: string) =
 
   # Send the script to the remote machine and run it after purging previous.
   echo "Removing previous scripts…"
-  direShell("ssh", ssh_target, "rm -f 'test_*.sh'")
+  direShell("ssh", ssh_target, "rm -f 'shelltest_*.sh'")
   echo "Copying current script ", bash_file, "…"
   direShell("scp", bash_file, ssh_target & ":.")
   echo "Running script remotely…"
   direShell("ssh", ssh_target, "./" & bash_file)
 
 
-task "test_install", "Pass a configuration file for testing installations":
+task "shell_test", "Pass *.json files for shell testing":
   if paramCount() < 2:
-    quit "Pass a json with test info like `nake jsonfile test_install'."
+    quit "Pass a json with test info like `nake jsonfile shell_test'."
 
   # Read data from the json test file.
   run_json_test(param_str(1))
