@@ -266,7 +266,7 @@ proc run_json_test(json_filename: string) =
     user = json["user"].str
     ssh_target = user & "@" & host
     seconds = int(epoch_time())
-    bash_file = "shelltest_" & $seconds & ".sh"
+    bash_file = "shell_test_" & $seconds & ".sh"
     compiler_branch = json["nimrod_branch"].str
     compiler_version_str = json["nimrod_version_str"].str
     nimrod_csources_branch = json["nimrod_csources_branch"].str
@@ -281,11 +281,13 @@ proc run_json_test(json_filename: string) =
 
   # Send the script to the remote machine and run it after purging previous.
   echo "Removing previous scripts…"
-  direShell("ssh", ssh_target, "rm -f 'shelltest_*.sh'")
+  direShell("ssh", ssh_target, "rm -f 'shell_test_*.sh'")
   echo "Copying current script ", bash_file, "…"
   direShell("scp", bash_file, ssh_target & ":.")
   echo "Running script remotely…"
   direShell("ssh", ssh_target, "./" & bash_file)
+  echo "Removing script…"
+  direShell("ssh", ssh_target, "rm '" & bash_file & "'")
 
 
 task "shell_test", "Pass *.json files for shell testing":
