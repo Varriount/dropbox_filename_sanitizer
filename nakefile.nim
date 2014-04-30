@@ -163,12 +163,15 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
     echo "* ``", v, "`` ", filename.extract_filename
 
 proc gen_script(user, host, dir_name,
-    nimrod_git_branch, nimrod_version_string: string): string =
+    nimrod_git_branch, nimrod_version_string,
+    nimrod_csources_branch: string): string =
   ## Returns a string with the contents of the shell script to run.
   ##
   ## Pass the name of the host where the script will run and the unix username.
   ## The `nimrod_git_branch` parameter can be a tag or a git commit hash. The
   ## `nimrod_version_string` will be passed to grep as is (beware escaping).
+  ## The `nimrod_csources_branch` is just like `nimrod_git_branch` but for the
+  ## csources sub repository.
   ##
   ## The `dir_name` parameter should be a random unique string which will be
   ## used as directory base to avoid colliding with other tests. You can pass
@@ -189,6 +192,10 @@ BABEL_CFG=~/.babel
 BABEL_BIN="${BABEL_CFG}/bin"
 BABEL_SRC="${TEST_DIR}/babel"
 
+# Try to purge babel absolute temp directory for reruns and other users. See
+# https://github.com/nimrod-code/babel/issues/28.
+trap "rm -Rf /tmp/babel" EXIT
+
 rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
 if test -d "${BASE_DIR}"; then
   echo "Could not purge $BASE_DIR"
@@ -202,9 +209,13 @@ echo "Downloading Nimrod compiler '""")
 git clone --depth 1 -b """)
   result.add(nimrod_git_branch)
   result.add(""" git://github.com/Araq/Nimrod.git "${NIM_DIR}"
-git clone --depth 1 git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
+git clone --depth 1 -b """)
+  result.add(nimrod_csources_branch)
+  result.add(""" git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
 
-echo "Compiling csources…"
+echo "Compiling csources (""")
+  result.add(nimrod_csources_branch)
+  result.add("""…"
 cd "${NIM_DIR}/csources"
 sh build.sh
 
@@ -258,12 +269,13 @@ proc run_json_test(json_filename: string) =
     bash_file = "shelltest_" & $seconds & ".sh"
     compiler_branch = json["nimrod_branch"].str
     compiler_version_str = json["nimrod_version_str"].str
+    nimrod_csources_branch = json["nimrod_csources_branch"].str
 
   finally: bash_file.remove_file
 
   # Generate the script.
   bash_file.write_file(gen_script(user, host,
-    $seconds, compiler_branch, compiler_version_str))
+    $seconds, compiler_branch, compiler_version_str, nimrod_csources_branch))
   doAssert 0 == bash_file.chmod(
     S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
 

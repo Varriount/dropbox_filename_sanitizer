@@ -2,5 +2,6 @@
 "host": "localhost",
 "user": "igor",
 "nimrod_branch": "devel",
-"nimrod_version_str": "Nimrod Compiler Version"
+"nimrod_version_str": "Nimrod Compiler Version",
+"nimrod_csources_branch": "master"
 }
