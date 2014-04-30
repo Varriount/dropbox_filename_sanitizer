@@ -25,6 +25,7 @@ babel package manager <https://github.com/nimrod-code/babel>`_ to install the
 binary::
 
     $ babel update
+    $ babel install argument_parser
     $ babel install dropbox_filename_sanitizer
 
 This will install the ``dropbox_filename_sanitizer`` command into Babel's
@@ -38,9 +39,10 @@ Install the `Nimrod compiler <http://nimrod-lang.org>`_. Then use `Nimrod's
 babel package manager <https://github.com/nimrod-code/babel>`_ to install
 locally the github checkout::
 
+    $ babel update
+    $ babel install argument_parser
     $ git clone https://github.com/gradha/dropbox_filename_sanitizer.git
     $ cd dropbox_filename_sanitizer
-    $ git checkout develop
     $ babel install
 
 
