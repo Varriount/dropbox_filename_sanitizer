@@ -162,20 +162,23 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
 
-proc gen_setup_script(user, host, dir_name,
-    nimrod_git_branch, nimrod_version_string,
-    nimrod_csources_branch: string): string =
+type Json_info = object
+  host: string
+  user: string
+  ssh_target: string
+  seconds: int
+  bash_file: string
+  compiler_branch: string
+  compiler_version_str: string
+  nimrod_csources_branch: string
+  chunk_file: string
+  chunk_number: int
+  bin_version: string
+
+proc gen_setup_script(json_info: Json_info): string =
   ## Returns a string with the contents of the shell script to run.
   ##
-  ## Pass the name of the host where the script will run and the unix username.
-  ## The `nimrod_git_branch` parameter can be a tag or a git commit hash. The
-  ## `nimrod_version_string` will be passed to grep as is (beware escaping).
-  ## The `nimrod_csources_branch` is just like `nimrod_git_branch` but for the
-  ## csources sub repository.
-  ##
-  ## The `dir_name` parameter should be a random unique string which will be
-  ## used as directory base to avoid colliding with other tests. You can pass
-  ## the epoch seconds here as a string.
+  ## Pass a Json_info structure read previously with read_json.
   result = """#!/bin/sh
 
 # Set errors to bail out.
@@ -184,7 +187,7 @@ set -e
 #set -v
 BASE_DIR=~/shelltest_dropbox_filename_sanitizer
 TEST_DIR="${BASE_DIR}/"""
-  result.add(dir_name)
+  result.add($json_info.seconds)
   result.add(""""
 NIM_DIR="${TEST_DIR}/compiler"
 NIM_BIN="${NIM_DIR}/bin/nimrod"
@@ -204,17 +207,17 @@ fi
 mkdir -p "${TEST_DIR}"
 
 echo "Downloading Nimrod compiler '""")
-  result.add(nimrod_git_branch)
+  result.add(json_info.compiler_branch)
   result.add("""'…"
 git clone -q --depth 1 -b """)
-  result.add(nimrod_git_branch)
+  result.add(json_info.compiler_branch)
   result.add(""" git://github.com/Araq/Nimrod.git "${NIM_DIR}"
 git clone -q --depth 1 -b """)
-  result.add(nimrod_csources_branch)
+  result.add(json_info.nimrod_csources_branch)
   result.add(""" git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
 
 echo "Compiling csources (""")
-  result.add(nimrod_csources_branch)
+  result.add(json_info.nimrod_csources_branch)
   result.add(""")…"
 cd "${NIM_DIR}/csources"
 sh build.sh 2>&1 >/dev/null
@@ -230,7 +233,7 @@ echo "Testing Nimrod compiler invokation through adhoc path…"
 export PATH="${NIM_DIR}/bin:${PATH}"
 which nimrod
 nimrod -v|grep """")
-  result.add(nimrod_version_string)
+  result.add(json_info.compiler_version_str)
   result.add(""""
 
 echo "Downloading Babel package manager…"
@@ -246,18 +249,18 @@ babel update 2>&1 >/dev/null
 babel install -y babel 2>&1 >/dev/null
 """)
 
-proc gen_chunk_script(rst_file: string, chunk_number: int): string =
-  ## Returns the lines for the specified example block in `rst_file`.
+proc gen_chunk_script(json_info: Json_info): string =
+  ## Returns the lines for the specified example block in `json_info`.
   ##
   ## The returned block will contain only lines starting with the dollar sign.
-  ## The `chunk_number` is an index starting from zero to infinite. This proc
-  ## always succeeds, it quits on failure.
+  ## The `chunk_number` field is an index starting from zero to infinite into
+  ## the `chunk_file` field. This proc always succeeds, it quits on failure.
   var
     pos = 0
     chunk_lines: seq[string] = @[]
     reading_chunk = false
 
-  for line in rst_file.lines:
+  for line in json_info.chunk_file.lines:
     if not reading_chunk:
       if line.len > 0 and line[0] in WhiteSpace:
         reading_chunk = true
@@ -265,7 +268,7 @@ proc gen_chunk_script(rst_file: string, chunk_number: int): string =
     if reading_chunk:
       if line.len < 1 or not (line[0] in WhiteSpace):
         reading_chunk = false
-        if pos == chunk_number:
+        if pos == json_info.chunk_number:
           break
         else:
           chunk_lines = @[]
@@ -275,10 +278,11 @@ proc gen_chunk_script(rst_file: string, chunk_number: int): string =
         if cleaned.len > 0 and cleaned[0] == '$':
           chunk_lines.add(cleaned[1 .. high(cleaned)].strip)
 
-  if pos == chunk_number and chunk_lines.len > 0:
+  if pos == json_info.chunk_number and chunk_lines.len > 0:
     result = "\n" & chunk_lines.join("\n") & "\n"
   else:
-    quit("Chunk " & $chunk_number & " not found in " & rst_file)
+    quit("Chunk " & $json_info.chunk_number &
+      " not found in " & json_info.chunk_file)
 
 
 proc get_last_git_tag(): string =
@@ -323,44 +327,46 @@ rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
 """)
 
 
+proc read_json(filename: string): Json_info =
+  ## Returns a Json_info object with the contents of `filename` or quits.
+  let json = filename.parse_file
+  doAssert json.kind == JObject
+  result.host = json["host"].str
+  result.user = json["user"].str
+  result.ssh_target = result.user & "@" & result.host
+  result.seconds = int(epoch_time())
+  result.bash_file = "shell_test_" & $result.seconds & ".sh"
+  result.compiler_branch = json["nimrod_branch"].str
+  result.compiler_version_str = json["nimrod_version_str"].str
+  result.nimrod_csources_branch = json["nimrod_csources_branch"].str
+  result.chunk_file = json["chunk_file"].str
+  result.chunk_number = int(json["chunk_number"].num)
+  result.bin_version = json["bin_version"].str
+
+
 proc run_json_test(json_filename: string) =
   ## Runs a json test file.
-  let json = json_filename.parse_file
-  assert json.kind == JObject
-  let
-    host = json["host"].str
-    user = json["user"].str
-    ssh_target = user & "@" & host
-    seconds = int(epoch_time())
-    bash_file = "shell_test_" & $seconds & ".sh"
-    compiler_branch = json["nimrod_branch"].str
-    compiler_version_str = json["nimrod_version_str"].str
-    nimrod_csources_branch = json["nimrod_csources_branch"].str
-    chunk_file = json["chunk_file"].str
-    chunk_number = int(json["chunk_number"].num)
-    bin_version = json["bin_version"].str
+  let json_info = read_json(json_filename)
 
-  finally: bash_file.remove_file
+  finally: json_info.bash_file.remove_file
 
   # Generate the script.
-  bash_file.write_file(gen_setup_script(user, host,
-      $seconds, compiler_branch, compiler_version_str,
-      nimrod_csources_branch) &
-    gen_chunk_script(chunk_file, chunk_number) &
-    gen_post_install_script(bin_version))
-  doAssert 0 == bash_file.chmod(
+  json_info.bash_file.write_file(gen_setup_script(json_info) &
+    gen_chunk_script(json_info) &
+    gen_post_install_script(json_info.bin_version))
+  doAssert 0 == json_info.bash_file.chmod(
     S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
 
   # Send the script to the remote machine and run it after purging previous.
   echo "Starting test for ", json_filename
   echo "Removing previous scripts…"
-  direShell("ssh", ssh_target, "rm -f 'shell_test_*.sh'")
-  echo "Copying current script ", bash_file, "…"
-  direShell("scp", bash_file, ssh_target & ":.")
+  direShell("ssh", json_info.ssh_target, "rm -f 'shell_test_*.sh'")
+  echo "Copying current script ", json_info.bash_file, "…"
+  direShell("scp", json_info.bash_file, json_info.ssh_target & ":.")
   echo "Running script remotely…"
-  direShell("ssh", ssh_target, "./" & bash_file)
+  direShell("ssh", json_info.ssh_target, "./" & json_info.bash_file)
   echo "Removing script…"
-  direShell("ssh", ssh_target, "rm '" & bash_file & "'")
+  direShell("ssh", json_info.ssh_target, "rm '" & json_info.bash_file & "'")
 
 
 task "shell_test", "Pass *.json files for shell testing":
