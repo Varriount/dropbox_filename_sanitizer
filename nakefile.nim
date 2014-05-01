@@ -206,25 +206,25 @@ mkdir -p "${TEST_DIR}"
 echo "Downloading Nimrod compiler '""")
   result.add(nimrod_git_branch)
   result.add("""'…"
-git clone --depth 1 -b """)
+git clone -q --depth 1 -b """)
   result.add(nimrod_git_branch)
   result.add(""" git://github.com/Araq/Nimrod.git "${NIM_DIR}"
-git clone --depth 1 -b """)
+git clone -q --depth 1 -b """)
   result.add(nimrod_csources_branch)
   result.add(""" git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
 
 echo "Compiling csources (""")
   result.add(nimrod_csources_branch)
-  result.add("""…"
+  result.add(""")…"
 cd "${NIM_DIR}/csources"
-sh build.sh
+sh build.sh 2>&1 >/dev/null
 
 echo "Compiling koch…"
 cd "${NIM_DIR}"
-bin/nimrod c koch
+bin/nimrod c koch 2>&1 >/dev/null
 
 echo "Compiling Nimrod…"
-./koch boot -d:release
+./koch boot -d:release 2>&1 >/dev/null
 
 echo "Testing Nimrod compiler invokation through adhoc path…"
 export PATH="${NIM_DIR}/bin:${PATH}"
@@ -234,16 +234,16 @@ nimrod -v|grep """")
   result.add(""""
 
 echo "Downloading Babel package manager…"
-git clone --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
+git clone -q --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
 cd "${BABEL_SRC}"
 
 echo "Compiling Babel…"
-nimrod c -r src/babel install
+nimrod c -r src/babel install 2>&1 >/dev/null
 
 echo "Installing Babel itself through environment path…"
 export PATH="${BABEL_BIN}:${PATH}"
-babel update
-babel install -y babel
+babel update 2>&1 >/dev/null
+babel install -y babel 2>&1 >/dev/null
 """)
 
 proc gen_chunk_script(rst_file: string, chunk_number: int): string =
@@ -352,6 +352,7 @@ proc run_json_test(json_filename: string) =
     S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
 
   # Send the script to the remote machine and run it after purging previous.
+  echo "Starting test for ", json_filename
   echo "Removing previous scripts…"
   direShell("ssh", ssh_target, "rm -f 'shell_test_*.sh'")
   echo "Copying current script ", bash_file, "…"
