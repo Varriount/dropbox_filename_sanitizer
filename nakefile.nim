@@ -162,7 +162,7 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
 
-proc gen_script(user, host, dir_name,
+proc gen_setup_script(user, host, dir_name,
     nimrod_git_branch, nimrod_version_string,
     nimrod_csources_branch: string): string =
   ## Returns a string with the contents of the shell script to run.
@@ -244,13 +244,57 @@ echo "Installing Babel itself through environment path…"
 export PATH="${BABEL_BIN}:${PATH}"
 babel update
 babel install -y babel
+""")
 
-# Install dependencies first to avoid troubles, see https://github.com/nimrod-code/babel/issues/37
-babel install argument_parser
-echo "Testing dropbox_filename_sanitizer babel installation…"
-babel install dropbox_filename_sanitizer
-echo "Babel finished installing, testing…"
-dropbox_filename_sanitizer -v | grep Version
+proc gen_chunk_script(rst_file: string, chunk_number: int): string =
+  ## Returns the lines for the specified example block in `rst_file`.
+  ##
+  ## The returned block will contain only lines starting with the dollar sign.
+  ## The `chunk_number` is an index starting from zero to infinite. This proc
+  ## always succeeds, it quits on failure.
+  var
+    pos = 0
+    chunk_lines: seq[string] = @[]
+    reading_chunk = false
+
+  for line in rst_file.lines:
+    if not reading_chunk:
+      if line.len > 0 and line[0] in WhiteSpace:
+        reading_chunk = true
+
+    if reading_chunk:
+      if line.len < 1 or not (line[0] in WhiteSpace):
+        reading_chunk = false
+        if pos == chunk_number:
+          break
+        else:
+          chunk_lines = @[]
+          inc pos
+      else:
+        var cleaned = line.strip
+        if cleaned.len > 0 and cleaned[0] == '$':
+          chunk_lines.add(cleaned[1 .. high(cleaned)].strip)
+
+  if pos == chunk_number and chunk_lines.len > 0:
+    result = "\n" & chunk_lines.join("\n") & "\n"
+  else:
+    quit("Chunk " & $chunk_number & " not found in " & rst_file)
+
+
+proc gen_post_install_script(): string =
+  ## Returns the part of the shell script which involves testing the command.
+  ##
+  ## The testing is simple: see if it is installed in the babel path by running
+  ## the command and expecting the correct version number when invoked with the
+  ## version switch.
+  ##
+  ## Usually you will concatenate this to the end of gen_setup_script() +
+  ## whatever block you are testing.
+  result = """
+echo "Testing installed binary version."
+dropbox_filename_sanitizer -v | grep """"
+  result.add(dropbox_filename_sanitizer.version_str)
+  result.add(""""
 
 echo "Test script finished successfully, removing stuff…"
 rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
@@ -270,12 +314,17 @@ proc run_json_test(json_filename: string) =
     compiler_branch = json["nimrod_branch"].str
     compiler_version_str = json["nimrod_version_str"].str
     nimrod_csources_branch = json["nimrod_csources_branch"].str
+    chunk_file = json["chunk_file"].str
+    chunk_number = int(json["chunk_number"].num)
 
   finally: bash_file.remove_file
 
   # Generate the script.
-  bash_file.write_file(gen_script(user, host,
-    $seconds, compiler_branch, compiler_version_str, nimrod_csources_branch))
+  bash_file.write_file(gen_setup_script(user, host,
+      $seconds, compiler_branch, compiler_version_str,
+      nimrod_csources_branch) &
+    gen_chunk_script(chunk_file, chunk_number) &
+    gen_post_install_script())
   doAssert 0 == bash_file.chmod(
     S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
 
