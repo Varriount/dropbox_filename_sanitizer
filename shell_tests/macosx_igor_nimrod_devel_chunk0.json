@@ -1,0 +1,10 @@
+{
+"host": "localhost",
+"user": "igor",
+"nimrod_branch": "devel",
+"nimrod_version_str": "Nimrod Compiler Version",
+"nimrod_csources_branch": "master",
+"chunk_file": "README.rst",
+"chunk_number": 0,
+"bin_version": "stable"
+}

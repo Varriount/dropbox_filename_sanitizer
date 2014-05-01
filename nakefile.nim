@@ -1,5 +1,5 @@
 import nake, os, times, osproc, zipfiles, md5, dropbox_filename_sanitizer,
-  sequtils
+  sequtils, json, posix
 
 const
   dist_dir = "dist"
@@ -161,3 +161,220 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
   for filename in walk_files(dist_dir/"*.zip"):
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
+
+type Json_info = object
+  host: string
+  user: string
+  ssh_target: string
+  seconds: int
+  bash_file: string
+  compiler_branch: string
+  compiler_version_str: string
+  nimrod_csources_branch: string
+  chunk_file: string
+  chunk_number: int
+  bin_version: string
+
+proc gen_setup_script(json_info: Json_info): string =
+  ## Returns a string with the contents of the shell script to run.
+  ##
+  ## Pass a Json_info structure read previously with read_json.
+  result = """#!/bin/sh
+
+# Set errors to bail out.
+set -e
+# Display commands
+#set -v
+BASE_DIR=~/shelltest_dropbox_filename_sanitizer
+TEST_DIR="${BASE_DIR}/"""
+  result.add($json_info.seconds)
+  result.add(""""
+NIM_DIR="${TEST_DIR}/compiler"
+NIM_BIN="${NIM_DIR}/bin/nimrod"
+BABEL_CFG=~/.babel
+BABEL_BIN="${BABEL_CFG}/bin"
+BABEL_SRC="${TEST_DIR}/babel"
+
+# Try to purge babel absolute temp directory for reruns and other users. See
+# https://github.com/nimrod-code/babel/issues/28.
+trap "rm -Rf /tmp/babel" EXIT
+
+rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
+if test -d "${BASE_DIR}"; then
+  echo "Could not purge $BASE_DIR"
+  exit 1
+fi
+mkdir -p "${TEST_DIR}"
+
+echo "Downloading Nimrod compiler '""")
+  result.add(json_info.compiler_branch)
+  result.add("""'…"
+git clone -q --depth 1 -b """)
+  result.add(json_info.compiler_branch)
+  result.add(""" git://github.com/Araq/Nimrod.git "${NIM_DIR}"
+git clone -q --depth 1 -b """)
+  result.add(json_info.nimrod_csources_branch)
+  result.add(""" git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
+
+echo "Compiling csources (""")
+  result.add(json_info.nimrod_csources_branch)
+  result.add(""")…"
+cd "${NIM_DIR}/csources"
+sh build.sh 2>&1 >/dev/null
+
+echo "Compiling koch…"
+cd "${NIM_DIR}"
+bin/nimrod c koch 2>&1 >/dev/null
+
+echo "Compiling Nimrod…"
+./koch boot -d:release 2>&1 >/dev/null
+
+echo "Testing Nimrod compiler invokation through adhoc path…"
+export PATH="${NIM_DIR}/bin:${PATH}"
+which nimrod
+nimrod -v|grep """")
+  result.add(json_info.compiler_version_str)
+  result.add(""""
+
+echo "Downloading Babel package manager…"
+git clone -q --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
+cd "${BABEL_SRC}"
+
+echo "Compiling Babel…"
+nimrod c -r src/babel install 2>&1 >/dev/null
+
+echo "Installing Babel itself through environment path…"
+export PATH="${BABEL_BIN}:${PATH}"
+babel update 2>&1 >/dev/null
+babel install -y babel 2>&1 >/dev/null
+""")
+
+proc gen_chunk_script(json_info: Json_info): string =
+  ## Returns the lines for the specified example block in `json_info`.
+  ##
+  ## The returned block will contain only lines starting with the dollar sign.
+  ## The `chunk_number` field is an index starting from zero to infinite into
+  ## the `chunk_file` field. This proc always succeeds, it quits on failure.
+  var
+    pos = 0
+    chunk_lines: seq[string] = @[]
+    reading_chunk = false
+
+  for line in json_info.chunk_file.lines:
+    if not reading_chunk:
+      if line.len > 0 and line[0] in WhiteSpace:
+        reading_chunk = true
+
+    if reading_chunk:
+      if line.len < 1 or not (line[0] in WhiteSpace):
+        reading_chunk = false
+        if pos == json_info.chunk_number:
+          break
+        else:
+          chunk_lines = @[]
+          inc pos
+      else:
+        var cleaned = line.strip
+        if cleaned.len > 0 and cleaned[0] == '$':
+          chunk_lines.add(cleaned[1 .. high(cleaned)].strip)
+
+  if pos == json_info.chunk_number and chunk_lines.len > 0:
+    result = "\n" & chunk_lines.join("\n") & "\n"
+  else:
+    quit("Chunk " & $json_info.chunk_number &
+      " not found in " & json_info.chunk_file)
+
+
+proc get_last_git_tag(): string =
+  ## Returns the last git tag without the prefixing v.
+  ##
+  ## Aborts if the tag can't be retrieved. The git command lists tags
+  ## alphabetically, so this may break and report not the last tag when numbers
+  ## go into double digits.
+  let (output, code) = execCmdEx("git tag --list 'v*'")
+  doAssert code == 0
+  for line in output.split("\n"):
+    if line.len > 0:
+      doAssert line[0] == 'v'
+      result = line[1 .. <line.len].strip
+  doAssert(not result.isNil)
+
+proc gen_post_install_script(version: string): string =
+  ## Returns the part of the shell script which involves testing the command.
+  ##
+  ## The testing is simple: see if it is installed in the babel path by running
+  ## the command and expecting the correct version number when invoked with the
+  ## version switch.
+  ##
+  ## Usually you will concatenate this to the end of gen_setup_script() +
+  ## whatever block you are testing.
+  ##
+  ## The `version` string should come from the json files and indicates the
+  ## expected string dumped by the binary. If you pass the word ``current`` it
+  ## will be replaced by the version string from the module. Otherwise it takes
+  ## the last tag from the git repository.
+  result = """
+echo "Testing installed binary version."
+dropbox_filename_sanitizer -v | grep """"
+  if version == "current":
+    result.add(dropbox_filename_sanitizer.version_str)
+  else:
+    result.add(get_last_git_tag())
+  result.add(""""
+
+echo "Test script finished successfully, removing stuff…"
+rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
+""")
+
+
+proc read_json(filename: string): Json_info =
+  ## Returns a Json_info object with the contents of `filename` or quits.
+  let json = filename.parse_file
+  doAssert json.kind == JObject
+  result.host = json["host"].str
+  result.user = json["user"].str
+  result.ssh_target = result.user & "@" & result.host
+  result.seconds = int(epoch_time())
+  result.bash_file = "shell_test_" & $result.seconds & ".sh"
+  result.compiler_branch = json["nimrod_branch"].str
+  result.compiler_version_str = json["nimrod_version_str"].str
+  result.nimrod_csources_branch = json["nimrod_csources_branch"].str
+  result.chunk_file = json["chunk_file"].str
+  result.chunk_number = int(json["chunk_number"].num)
+  result.bin_version = json["bin_version"].str
+
+
+proc run_json_test(json_filename: string) =
+  ## Runs a json test file.
+  let json_info = read_json(json_filename)
+
+  finally: json_info.bash_file.remove_file
+
+  # Generate the script.
+  json_info.bash_file.write_file(gen_setup_script(json_info) &
+    gen_chunk_script(json_info) &
+    gen_post_install_script(json_info.bin_version))
+  doAssert 0 == json_info.bash_file.chmod(
+    S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
+
+  # Send the script to the remote machine and run it after purging previous.
+  echo "Starting test for ", json_filename
+  echo "Removing previous scripts…"
+  direShell("ssh", json_info.ssh_target, "rm -f 'shell_test_*.sh'")
+  echo "Copying current script ", json_info.bash_file, "…"
+  direShell("scp", json_info.bash_file, json_info.ssh_target & ":.")
+  echo "Running script remotely…"
+  direShell("ssh", json_info.ssh_target, "./" & json_info.bash_file)
+  echo "Removing script…"
+  direShell("ssh", json_info.ssh_target, "rm '" & json_info.bash_file & "'")
+
+
+task "shell_test", "Pass *.json files for shell testing":
+  if paramCount() < 2:
+    quit "Pass a json with test info like `nake jsonfile shell_test'."
+
+  # Read data from the json test file.
+  for f in 1 .. <paramCount():
+    run_json_test(param_str(f))
+
+  echo "Nakefile finished successfully"

@@ -24,6 +24,10 @@ What to do for a new public release of dropbox_filename_sanitizer?
   changes log into the message. Add rst item markers.
 * Move closed issues to the release milestone.
 * ``git push origin master stable --tags``.
+* Run tests in the ``shell_tests`` directory with commands like ``nake
+  shell_tests/mac* shell_test``. Same for linux. The tests take some time,
+  leave them running in the background and check results. If anything fails,
+  abort release and fix.
 * Build binaries for macosx/linux with nake ``dist`` command.
 * Attach the binaries to the appropriate release at
   `https://github.com/gradha/dropbox_filename_sanitizer/releases
