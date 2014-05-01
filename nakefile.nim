@@ -281,7 +281,21 @@ proc gen_chunk_script(rst_file: string, chunk_number: int): string =
     quit("Chunk " & $chunk_number & " not found in " & rst_file)
 
 
-proc gen_post_install_script(): string =
+proc get_last_git_tag(): string =
+  ## Returns the last git tag without the prefixing v.
+  ##
+  ## Aborts if the tag can't be retrieved. The git command lists tags
+  ## alphabetically, so this may break and report not the last tag when numbers
+  ## go into double digits.
+  let (output, code) = execCmdEx("git tag --list 'v*'")
+  doAssert code == 0
+  for line in output.split("\n"):
+    if line.len > 0:
+      doAssert line[0] == 'v'
+      result = line[1 .. <line.len].strip
+  doAssert(not result.isNil)
+
+proc gen_post_install_script(version: string): string =
   ## Returns the part of the shell script which involves testing the command.
   ##
   ## The testing is simple: see if it is installed in the babel path by running
@@ -290,10 +304,18 @@ proc gen_post_install_script(): string =
   ##
   ## Usually you will concatenate this to the end of gen_setup_script() +
   ## whatever block you are testing.
+  ##
+  ## The `version` string should come from the json files and indicates the
+  ## expected string dumped by the binary. If you pass the word ``current`` it
+  ## will be replaced by the version string from the module. Otherwise it takes
+  ## the last tag from the git repository.
   result = """
 echo "Testing installed binary version."
 dropbox_filename_sanitizer -v | grep """"
-  result.add(dropbox_filename_sanitizer.version_str)
+  if version == "current":
+    result.add(dropbox_filename_sanitizer.version_str)
+  else:
+    result.add(get_last_git_tag())
   result.add(""""
 
 echo "Test script finished successfully, removing stuff…"
@@ -316,6 +338,7 @@ proc run_json_test(json_filename: string) =
     nimrod_csources_branch = json["nimrod_csources_branch"].str
     chunk_file = json["chunk_file"].str
     chunk_number = int(json["chunk_number"].num)
+    bin_version = json["bin_version"].str
 
   finally: bash_file.remove_file
 
@@ -324,7 +347,7 @@ proc run_json_test(json_filename: string) =
       $seconds, compiler_branch, compiler_version_str,
       nimrod_csources_branch) &
     gen_chunk_script(chunk_file, chunk_number) &
-    gen_post_install_script())
+    gen_post_install_script(bin_version))
   doAssert 0 == bash_file.chmod(
     S_IRWXU or S_IRGRP or S_IXGRP or S_IROTH or S_IXOTH)
 
