@@ -367,6 +367,7 @@ task "shell_test", "Pass *.json files for shell testing":
     quit "Pass a json with test info like `nake jsonfile shell_test'."
 
   # Read data from the json test file.
-  run_json_test(param_str(1))
+  for f in 1 .. <paramCount():
+    run_json_test(param_str(f))
 
   echo "Nakefile finished successfully"
