@@ -388,17 +388,20 @@ task "shell_test", "Pass *.json files for shell testing":
     quit "Pass a json with test info like `nake jsonfile shell_test'."
 
   # Read data from the json test file.
-  var total, success = 0
+  var
+    failed: seq[string] = @[]
+    total = 0
   for f in 1 .. <paramCount():
     total.inc
+    let name = param_str(f)
     try:
-      run_json_test(param_str(f))
-      success.inc
+      run_json_test(name)
     except EAssertionFailed:
-      discard
+      failed.add(name)
+      echo "\tFailed: ", name
 
   echo "Nakefile finished testing ", total, " tests."
-  if total == success:
+  if failed.len < 1:
     echo "Everything works!"
   else:
-    echo "Tests passed ", success, ". VERY BAD!"
+    for f in failed: echo "\tFailed: ", f
