@@ -229,14 +229,14 @@ silent echo "Compiling csources (""")
   result.add(json_info.nimrod_csources_branch)
   result.add(""")…"
 cd "${NIM_DIR}/csources"
-silent sh build.sh 2>&1 >/dev/null
+silent sh build.sh
 
 silent echo "Compiling koch…"
 cd "${NIM_DIR}"
-silent bin/nimrod c koch 2>&1 >/dev/null
+silent bin/nimrod c koch
 
 silent echo "Compiling Nimrod…"
-silent ./koch boot -d:release 2>&1 >/dev/null
+silent ./koch boot -d:release
 
 silent echo "Testing Nimrod compiler invokation through adhoc path…"
 export PATH="${NIM_DIR}/bin:${PATH}"
@@ -250,12 +250,12 @@ silent git clone -q --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_
 cd "${BABEL_SRC}"
 
 silent echo "Compiling Babel…"
-silent nimrod c -r src/babel install 2>&1 >/dev/null
+silent nimrod c -r src/babel install
 
 echo "Installing Babel itself through environment path…"
 export PATH="${BABEL_BIN}:${PATH}"
-silent babel update 2>&1 >/dev/null
-silent babel install -y babel 2>&1 >/dev/null
+silent babel update
+silent babel install -y babel
 """)
 
 proc gen_chunk_script(json_info: Json_info): string =
@@ -355,9 +355,14 @@ proc read_json(filename: string): Json_info =
 
 proc test_shell(cmd: varargs[string, `$`]): bool {.discardable.} =
   ## Like direShell() but doesn't quit, rather raises an exception.
-  result = shell(cmd)
+  let
+    full_command = cmd.join(" ")
+    (output, exit) = full_command.exec_cmd_ex
+  result = 0 == exit
   if not result:
-    raise new_exception(EAssertionFailed, "Error running " & cmd.join(", "))
+    output.echo
+    raise new_exception(EAssertionFailed, "Error running " & full_command)
+
 
 proc run_json_test(json_filename: string) =
   ## Runs a json test file.
