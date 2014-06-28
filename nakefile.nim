@@ -162,18 +162,26 @@ Binary MD5 checksums:""" % [dropbox_filename_sanitizer.version_str, git_commit]
     let v = filename.read_file.get_md5
     echo "* ``", v, "`` ", filename.extract_filename
 
-type Json_info = object
-  host: string
-  user: string
-  ssh_target: string
-  seconds: int
-  bash_file: string
-  compiler_branch: string
-  compiler_version_str: string
-  nimrod_csources_branch: string
-  chunk_file: string
-  chunk_number: int
-  bin_version: string
+type
+  Json_info = object
+    host: string
+    user: string
+    ssh_target: string
+    seconds: int
+    bash_file: string
+    compiler_branch: string
+    compiler_version_str: string
+    nimrod_csources_branch: string
+    chunk_file: string
+    chunk_number: int
+    bin_version: string
+
+  Failed_test = object of EAssertionFailed ## \
+    ## Indicates something failed, with error output if `errors` is not nil.
+    errors*: string
+
+  Fail_info = tuple[script, log: string] ## Names the tuple used in test checks.
+
 
 proc gen_setup_script(json_info: Json_info): string =
   ## Returns a string with the contents of the shell script to run.
@@ -200,7 +208,8 @@ trap "/bin/rm -f $SILENT_LOG" EXIT
 
 function report_and_exit {
 	cat "${SILENT_LOG}";
-	echo "\033[91mError running command.\033[39m"
+	#echo "\033[91mError running command.\033[39m"
+	echo "Error running command."
 	exit 1;
 }
 
@@ -360,8 +369,9 @@ proc test_shell(cmd: varargs[string, `$`]): bool {.discardable.} =
     (output, exit) = full_command.exec_cmd_ex
   result = 0 == exit
   if not result:
-    output.echo
-    raise new_exception(EAssertionFailed, "Error running " & full_command)
+    var e = new_exception(Failed_test, "Error running " & full_command)
+    e.errors = output
+    raise e
 
 
 proc run_json_test(json_filename: string) =
@@ -394,7 +404,7 @@ task "shell_test", "Pass *.json files for shell testing":
 
   # Read data from the json test file.
   var
-    failed: seq[string] = @[]
+    failed: seq[Fail_info] = @[]
     success: seq[string] = @[]
   for f in 1 .. <paramCount():
     let name = param_str(f)
@@ -402,13 +412,27 @@ task "shell_test", "Pass *.json files for shell testing":
       run_json_test(name)
       success.add(name)
       echo "\tSuccess: ", name
-    except EAssertionFailed:
-      failed.add(name)
+    except Failed_test:
+      var failure: Fail_info
+      failure.script = name
       echo "\tFailed: ", name
+      # Attempt to keep the errors.
+      let
+        e = (ref Failed_test)get_current_exception()
+        error_log = get_temp_dir()/"errors_" & name.extract_filename & ".txt"
+      if not e.errors.is_nil:
+        try:
+          error_log.write_file(e.errors)
+          failure.log = error_log
+        except:
+          echo "\tSorry, could not write ", error_log
+      failed.add(failure)
 
   echo "Nakefile finished testing ", failed.len + success.len, " tests."
   if failed.len < 1:
     echo "Everything works!"
   else:
     for f in success: echo "\tSucceeded: ", f
-    for f in failed: echo "\tFailed: ", f
+    for script, log in failed.items:
+      echo "\tFailed: ", script
+      if not log.is_nil: echo "\t==> ", log
