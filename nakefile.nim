@@ -179,7 +179,7 @@ proc gen_setup_script(json_info: Json_info): string =
   ## Returns a string with the contents of the shell script to run.
   ##
   ## Pass a Json_info structure read previously with read_json.
-  result = """#!/bin/sh
+  result = """#!/bin/bash
 
 # Set errors to bail out.
 set -e
