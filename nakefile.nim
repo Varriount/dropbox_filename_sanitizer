@@ -402,6 +402,7 @@ task "shell_test", "Pass *.json files for shell testing":
   if paramCount() < 2:
     quit "Pass a json with test info like `nake jsonfile shell_test'."
 
+  let log_prefix = "errors_" & $int(epoch_time())
   # Read data from the json test file.
   var
     failed: seq[Fail_info] = @[]
@@ -419,7 +420,7 @@ task "shell_test", "Pass *.json files for shell testing":
       # Attempt to keep the errors.
       let
         e = (ref Failed_test)get_current_exception()
-        error_log = get_temp_dir()/"errors_" & name.extract_filename & ".txt"
+        error_log = get_temp_dir()/log_prefix & name.extract_filename & ".txt"
       if not e.errors.is_nil:
         try:
           error_log.write_file(e.errors)
