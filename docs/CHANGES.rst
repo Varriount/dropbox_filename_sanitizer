@@ -10,6 +10,8 @@ v0.4.1, ????-??-??
 
 * `Added testing of installation instructions
   <https://github.com/gradha/dropbox_filename_sanitizer/issues/12>`_.
+* `Improved shell test script
+  <https://github.com/gradha/dropbox_filename_sanitizer/issues/14>`_.
 
 v0.4.0, 2014-04-14
 ------------------
