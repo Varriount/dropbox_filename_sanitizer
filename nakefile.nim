@@ -1,5 +1,5 @@
 import nake, os, times, osproc, zipfiles, md5, dropbox_filename_sanitizer,
-  sequtils, json, posix
+  sequtils, json, posix, strutils
 
 const
   dist_dir = "dist"
@@ -195,9 +195,18 @@ BABEL_CFG=~/.babel
 BABEL_BIN="${BABEL_CFG}/bin"
 BABEL_SRC="${TEST_DIR}/babel"
 
-# Try to purge babel absolute temp directory for reruns and other users. See
-# https://github.com/nimrod-code/babel/issues/28.
-trap "rm -Rf /tmp/babel" EXIT
+SILENT_LOG=/tmp/silent_log_$$.txt
+trap "/bin/rm -f $SILENT_LOG" EXIT
+
+function report_and_exit {
+	cat "${SILENT_LOG}";
+	echo "\033[91mError running command.\033[39m"
+	exit 1;
+}
+
+function silent {
+	$* 2>>"${SILENT_LOG}" >> "${SILENT_LOG}" || report_and_exit;
+}
 
 rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
 if test -d "${BASE_DIR}"; then
@@ -206,47 +215,47 @@ if test -d "${BASE_DIR}"; then
 fi
 mkdir -p "${TEST_DIR}"
 
-echo "Downloading Nimrod compiler '""")
+silent echo "Downloading Nimrod compiler '""")
   result.add(json_info.compiler_branch)
   result.add("""'…"
-git clone -q --depth 1 -b """)
+silent git clone -q --depth 1 -b """)
   result.add(json_info.compiler_branch)
   result.add(""" git://github.com/Araq/Nimrod.git "${NIM_DIR}"
-git clone -q --depth 1 -b """)
+silent git clone -q --depth 1 -b """)
   result.add(json_info.nimrod_csources_branch)
   result.add(""" git://github.com/nimrod-code/csources "${NIM_DIR}/csources"
 
-echo "Compiling csources (""")
+silent echo "Compiling csources (""")
   result.add(json_info.nimrod_csources_branch)
   result.add(""")…"
 cd "${NIM_DIR}/csources"
-sh build.sh 2>&1 >/dev/null
+silent sh build.sh 2>&1 >/dev/null
 
-echo "Compiling koch…"
+silent echo "Compiling koch…"
 cd "${NIM_DIR}"
-bin/nimrod c koch 2>&1 >/dev/null
+silent bin/nimrod c koch 2>&1 >/dev/null
 
-echo "Compiling Nimrod…"
-./koch boot -d:release 2>&1 >/dev/null
+silent echo "Compiling Nimrod…"
+silent ./koch boot -d:release 2>&1 >/dev/null
 
-echo "Testing Nimrod compiler invokation through adhoc path…"
+silent echo "Testing Nimrod compiler invokation through adhoc path…"
 export PATH="${NIM_DIR}/bin:${PATH}"
 which nimrod
 nimrod -v|grep """")
   result.add(json_info.compiler_version_str)
   result.add(""""
 
-echo "Downloading Babel package manager…"
-git clone -q --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
+silent echo "Downloading Babel package manager…"
+silent git clone -q --depth 1 https://github.com/nimrod-code/babel.git "${BABEL_SRC}"
 cd "${BABEL_SRC}"
 
-echo "Compiling Babel…"
-nimrod c -r src/babel install 2>&1 >/dev/null
+silent echo "Compiling Babel…"
+silent nimrod c -r src/babel install 2>&1 >/dev/null
 
 echo "Installing Babel itself through environment path…"
 export PATH="${BABEL_BIN}:${PATH}"
-babel update 2>&1 >/dev/null
-babel install -y babel 2>&1 >/dev/null
+silent babel update 2>&1 >/dev/null
+silent babel install -y babel 2>&1 >/dev/null
 """)
 
 proc gen_chunk_script(json_info: Json_info): string =
@@ -314,7 +323,7 @@ proc gen_post_install_script(version: string): string =
   ## will be replaced by the version string from the module. Otherwise it takes
   ## the last tag from the git repository.
   result = """
-echo "Testing installed binary version."
+silent echo "Testing installed binary version."
 dropbox_filename_sanitizer -v | grep """"
   if version == "current":
     result.add(dropbox_filename_sanitizer.version_str)
@@ -322,7 +331,7 @@ dropbox_filename_sanitizer -v | grep """"
     result.add(get_last_git_tag())
   result.add(""""
 
-echo "Test script finished successfully, removing stuff…"
+echo "\033[92mTest script finished successfully, removing stuff…\033[39m"
 rm -Rf "${BASE_DIR}" "${BABEL_CFG}"
 """)
 
@@ -344,6 +353,12 @@ proc read_json(filename: string): Json_info =
   result.bin_version = json["bin_version"].str
 
 
+proc test_shell(cmd: varargs[string, `$`]): bool {.discardable.} =
+  ## Like direShell() but doesn't quit, rather raises an exception.
+  result = shell(cmd)
+  if not result:
+    raise new_exception(EAssertionFailed, "Error running " & cmd.join(", "))
+
 proc run_json_test(json_filename: string) =
   ## Runs a json test file.
   let json_info = read_json(json_filename)
@@ -359,14 +374,13 @@ proc run_json_test(json_filename: string) =
 
   # Send the script to the remote machine and run it after purging previous.
   echo "Starting test for ", json_filename
-  echo "Removing previous scripts…"
-  direShell("ssh", json_info.ssh_target, "rm -f 'shell_test_*.sh'")
+  test_shell("ssh", json_info.ssh_target, "rm -f 'shell_test_*.sh'")
   echo "Copying current script ", json_info.bash_file, "…"
-  direShell("scp", json_info.bash_file, json_info.ssh_target & ":.")
+  test_shell("scp", json_info.bash_file, json_info.ssh_target & ":.")
   echo "Running script remotely…"
-  direShell("ssh", json_info.ssh_target, "./" & json_info.bash_file)
+  test_shell("ssh", json_info.ssh_target, "./" & json_info.bash_file)
   echo "Removing script…"
-  direShell("ssh", json_info.ssh_target, "rm '" & json_info.bash_file & "'")
+  test_shell("ssh", json_info.ssh_target, "rm '" & json_info.bash_file & "'")
 
 
 task "shell_test", "Pass *.json files for shell testing":
@@ -374,7 +388,17 @@ task "shell_test", "Pass *.json files for shell testing":
     quit "Pass a json with test info like `nake jsonfile shell_test'."
 
   # Read data from the json test file.
+  var total, success = 0
   for f in 1 .. <paramCount():
-    run_json_test(param_str(f))
+    total.inc
+    try:
+      run_json_test(param_str(f))
+      success.inc
+    except EAssertionFailed:
+      discard
 
-  echo "Nakefile finished successfully"
+  echo "Nakefile finished testing ", total, " tests."
+  if total == success:
+    echo "Everything works!"
+  else:
+    echo "Tests passed ", success, ". VERY BAD!"
