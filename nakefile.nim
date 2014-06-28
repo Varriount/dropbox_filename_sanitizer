@@ -428,6 +428,7 @@ task "shell_test", "Pass *.json files for shell testing":
           echo "\tSorry, could not write ", error_log
       failed.add(failure)
 
+  discard exec_cmd("tput bel") # Beep!
   echo "Nakefile finished testing ", failed.len + success.len, " tests."
   if failed.len < 1:
     echo "Everything works!"
